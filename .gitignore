@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+cmd/mgr-ncd
 
 # Test binary, built with `go test -c`
 *.test
