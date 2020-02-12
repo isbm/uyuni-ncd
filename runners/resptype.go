@@ -1,5 +1,9 @@
 package runners
 
+import (
+	"encoding/json"
+)
+
 type RunnerStdResult struct {
 	Stdout  string
 	Stderr  string
@@ -30,6 +34,24 @@ type RunnerResponse struct {
 	Groups      map[string]RunnerResponseGroup
 }
 
-func (rr *RunnerResponse) Serialise() map[interface{}]interface{} {
-	return nil
+// JSON output of the response structure
+func (rr *RunnerResponse) JSON() string {
+	j, err := json.Marshal(rr)
+	if err != nil {
+		panic(err)
+	}
+	return string(j)
+}
+
+// Serialise to a map/interface object
+func (rr *RunnerResponse) Serialise() map[string]interface{} {
+	data := make(map[string]interface{})
+	j, err := json.Marshal(rr)
+	if err != nil {
+		panic(err)
+	}
+	if err := json.Unmarshal(j, &data); err != nil {
+		panic(err)
+	}
+	return data
 }
