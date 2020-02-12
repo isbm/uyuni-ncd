@@ -1,31 +1,72 @@
 package runners
 
 import (
-	"github.com/isbm/uyuni-ncd/nanostate"
+	"bytes"
+	"os/exec"
+	"strings"
 )
 
 type LocalRunner struct {
-	_response map[string]interface{}
-	_errcode  int
+	BaseRunner
 }
 
 func NewLocalRunner() *LocalRunner {
 	lr := new(LocalRunner)
+	lr.ref = lr
 	lr._errcode = ERR_INIT
+	lr._response = &RunnerResponse{}
 	return lr
 }
 
-// Run the compiled and loaded nanostate
-func (lr *LocalRunner) Run(state *nanostate.Nanostate) error {
-	return nil
+// Call module commands
+func (lr *LocalRunner) runModule(args interface{}) ([]RunnerHostResult, error) {
+	result := make([]RunnerHostResult, 0)
+	for _, argset := range args.([]interface{}) {
+		result = append(result, *lr.runCommand(argset))
+	}
+	return result, nil
 }
 
-// Response returns a map of string/any structure for further processing
-func (lr *LocalRunner) Response() map[string]interface{} {
-	return lr._response
-}
+// Run a local command
+func (br *LocalRunner) runCommand(argset interface{}) *RunnerHostResult {
+	response := make(map[string]RunnerStdResult)
+	result := &RunnerHostResult{
+		Host:     "localhost",
+		Response: response,
+	}
 
-// Errcode returns an error code of the runner
-func (lr *LocalRunner) Errcode() int {
-	return lr._errcode
+	for icid, icmd := range argset.(map[interface{}]interface{}) {
+		cmd := icmd.(string)
+		args := make([]string, 0)
+		for idx, token := range strings.Split(strings.TrimSpace(cmd), " ") {
+			if idx == 0 {
+				cmd = token
+			} else {
+				if token != "" {
+					args = append(args, token)
+				}
+			}
+		}
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+
+		sh := exec.Command(cmd, args...)
+		sh.Stdout = &stdout
+		sh.Stderr = &stderr
+
+		err := sh.Run()
+
+		out := &RunnerStdResult{
+			Stdout: stdout.String(),
+			Stderr: stderr.String(),
+		}
+
+		if err != nil {
+			out.Errmsg = err.Error()
+			out.Errcode = ERR_FAILED
+		}
+		response[icid.(string)] = *out
+	}
+
+	return result
 }
