@@ -6,14 +6,12 @@
 package runners
 
 import (
-	"github.com/isbm/uyuni-ncd/nanostate"
 	"os/user"
 	"path"
 )
 
 type SSHRunner struct {
-	_response  *RunnerResponse
-	_errcode   int
+	BaseRunner
 	_hosts     []string
 	_rsapath   string
 	_sshport   int
@@ -22,6 +20,7 @@ type SSHRunner struct {
 
 func NewSSHRunner() *SSHRunner {
 	shr := new(SSHRunner)
+	shr.ref = shr
 	shr._errcode = ERR_INIT
 	shr._response = &RunnerResponse{}
 	shr._hosts = make([]string, 0)
@@ -62,51 +61,6 @@ func (shr *SSHRunner) SetSSHPort(port int) *SSHRunner {
 	return shr
 }
 
-// Run the compiled and loaded nanostate
-func (shr *SSHRunner) Run(state *nanostate.Nanostate) bool {
-	errors := 0
-	shr._response.Id = state.Id
-	shr._response.Description = state.Descr
-	groups := make(map[string]RunnerResponseGroup)
-
-	for _, group := range state.Groups {
-		resp := &RunnerResponseGroup{
-			Errcode: -1,
-		}
-		response, err := shr.runGroup(group.Group)
-		if err != nil {
-			resp.Errmsg = err.Error()
-			errors++
-		} else {
-			resp.Response = response
-		}
-		groups[group.Id] = *resp
-	}
-	shr._response.Groups = groups
-
-	return errors == 0
-}
-
-// Run group of modules
-func (shr *SSHRunner) runGroup(group []*nanostate.StateModule) ([]RunnerResponseModule, error) {
-	resp := make([]RunnerResponseModule, 0)
-	for _, smod := range group {
-		cycle := &RunnerResponseModule{
-			Module: smod.Module,
-		}
-		response, err := shr.runModule(smod.Instructions)
-		if err != nil {
-			cycle.Errcode = ERR_FAILED
-			cycle.Errmsg = err.Error()
-		} else {
-			cycle.Errcode = ERR_OK
-			cycle.Response = response
-		}
-		resp = append(resp, *cycle)
-	}
-	return resp, nil
-}
-
 // Run module with the parameters
 func (shr *SSHRunner) runModule(args interface{}) ([]RunnerHostResult, error) {
 	result := make([]RunnerHostResult, 0)
@@ -142,14 +96,4 @@ func (shr *SSHRunner) callHost(fqdn string, args interface{}) *RunnerHostResult 
 		}
 	}
 	return result
-}
-
-// Response returns a map of string/any structure for further processing
-func (shr *SSHRunner) Response() *RunnerResponse {
-	return shr._response
-}
-
-// Errcode returns an error code of the runner
-func (shr *SSHRunner) Errcode() int {
-	return shr._errcode
 }
