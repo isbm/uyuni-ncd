@@ -1,0 +1,31 @@
+# ID is required for further reporting purposes
+# It is just a random whatever name without
+# spaces and, preferrably, special symbols.
+id: some-test
+
+# Description is just a short optional note what the nanostate is for.
+description: This is a test state
+
+# The state itself starts from the root "state".
+state:
+  # At this level are state groups.
+  # State groups are running asynchronously from each other.
+  # An ID of the group, just like an ID of the state with the same rules.
+
+  gather-machine-summary:
+    # LIST of modules. Currently only two modules are implemented:
+    # 1. ssh
+    # 2. local
+
+    # The "ssh" module will receive all the connectivity
+    # from the nanostate (passwords or pubkeys, fqdn etc).
+    # Here it only receives a series of actual commands on a target machine.
+    # Each "ssh" module opens an SSH connection and runs command list chain
+    # in the SSH channel sessions, combining the response into a JSON map.
+    # It doesn't make much sense to list up few "ssh" modules at this point,
+    # but better to call one and pile up commands in one cycle instead.
+    - ssh:
+        - get-id: "cat /etc/machine-id"
+        - uptime: "uptime"
+        - hostname: "hostname"
+
