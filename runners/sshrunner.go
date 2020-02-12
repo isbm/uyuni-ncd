@@ -12,7 +12,7 @@ import (
 )
 
 type SSHRunner struct {
-	_response  map[string]interface{} // XXX: Move that to its own type. ASAP!!
+	_response  *RunnerResponse
 	_errcode   int
 	_hosts     []string
 	_rsapath   string
@@ -23,7 +23,7 @@ type SSHRunner struct {
 func NewSSHRunner() *SSHRunner {
 	shr := new(SSHRunner)
 	shr._errcode = ERR_INIT
-	shr._response = make(map[string]interface{})
+	shr._response = &RunnerResponse{}
 	shr._hosts = make([]string, 0)
 	shr._sshport = 22
 	shr._sshverify = true
@@ -65,64 +65,64 @@ func (shr *SSHRunner) SetSSHPort(port int) *SSHRunner {
 // Run the compiled and loaded nanostate
 func (shr *SSHRunner) Run(state *nanostate.Nanostate) bool {
 	errors := 0
-	shr._response["id"] = state.Id
-	shr._response["description"] = state.Descr
-	groups := make(map[string]interface{})
+	shr._response.Id = state.Id
+	shr._response.Description = state.Descr
+	groups := make(map[string]RunnerResponseGroup)
 
 	for _, group := range state.Groups {
-		resp := map[string]interface{}{
-			"errcode": -1,
+		resp := &RunnerResponseGroup{
+			Errcode: -1,
 		}
 		response, err := shr.runGroup(group.Group)
 		if err != nil {
-			resp["errmsg"] = err.Error()
+			resp.Errmsg = err.Error()
 			errors++
 		} else {
-			resp["response"] = response
+			resp.Response = response
 		}
-		groups[group.Id] = resp
+		groups[group.Id] = *resp
 	}
-	shr._response["groups"] = groups
+	shr._response.Groups = groups
 
 	return errors == 0
 }
 
 // Run group of modules
-func (shr *SSHRunner) runGroup(group []*nanostate.StateModule) ([]map[string]interface{}, error) {
-	resp := make([]map[string]interface{}, 0)
+func (shr *SSHRunner) runGroup(group []*nanostate.StateModule) ([]RunnerResponseModule, error) {
+	resp := make([]RunnerResponseModule, 0)
 	for _, smod := range group {
-		cycle := map[string]interface{}{
-			"module": smod.Module,
+		cycle := &RunnerResponseModule{
+			Module: smod.Module,
 		}
 		response, err := shr.runModule(smod.Instructions)
 		if err != nil {
-			cycle["errcode"] = ERR_FAILED
-			cycle["errmsg"] = err.Error()
+			cycle.Errcode = ERR_FAILED
+			cycle.Errmsg = err.Error()
 		} else {
-			cycle["errcode"] = ERR_OK
-			cycle["response"] = response
+			cycle.Errcode = ERR_OK
+			cycle.Response = response
 		}
-		resp = append(resp, cycle)
+		resp = append(resp, *cycle)
 	}
 	return resp, nil
 }
 
 // Run module with the parameters
-func (shr *SSHRunner) runModule(args interface{}) ([]map[string]interface{}, error) {
-	result := make([]map[string]interface{}, 0)
+func (shr *SSHRunner) runModule(args interface{}) ([]RunnerHostResult, error) {
+	result := make([]RunnerHostResult, 0)
 	for _, fqdn := range shr._hosts {
 		ret := shr.callHost(fqdn, args)
-		result = append(result, ret)
+		result = append(result, *ret)
 	}
 	return result, nil
 }
 
 // Call a single host with a series of serial, synchronous commands, ensuring their order.
-func (shr *SSHRunner) callHost(fqdn string, args interface{}) map[string]interface{} {
-	response := make(map[string]interface{})
-	result := map[string]interface{}{
-		"host":     fqdn,
-		"response": response,
+func (shr *SSHRunner) callHost(fqdn string, args interface{}) *RunnerHostResult {
+	response := make(map[string]RunnerStdResult)
+	result := &RunnerHostResult{
+		Host:     fqdn,
+		Response: response,
 	}
 	for _, command := range args.([]interface{}) {
 		for cid, cmd := range command.(map[interface{}]interface{}) {
@@ -130,22 +130,22 @@ func (shr *SSHRunner) callHost(fqdn string, args interface{}) map[string]interfa
 			defer remote.Disconnect()
 			session := remote.NewSession()
 			_, err := session.Run(cmd.(string))
-			out := map[string]interface{}{
-				"stdout": session.Outbuff.String(),
-				"stderr": session.Errbuff.String(),
+			out := &RunnerStdResult{
+				Stdout: session.Outbuff.String(),
+				Stderr: session.Errbuff.String(),
 			}
 			if err != nil {
-				out["errmsg"] = err.Error()
-				out["errcode"] = ERR_FAILED
+				out.Errmsg = err.Error()
+				out.Errcode = ERR_FAILED
 			}
-			response[cid.(string)] = out
+			response[cid.(string)] = *out
 		}
 	}
 	return result
 }
 
 // Response returns a map of string/any structure for further processing
-func (shr *SSHRunner) Response() map[string]interface{} {
+func (shr *SSHRunner) Response() *RunnerResponse {
 	return shr._response
 }
 
