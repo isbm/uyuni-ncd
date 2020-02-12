@@ -13,19 +13,17 @@ state:
   # An ID of the group, just like an ID of the state with the same rules.
 
   gather-machine-summary:
-    # LIST of modules. Currently only two modules are implemented:
-    # 1. ssh
-    # 2. local
+    # LIST of modules. Currently only one module is implemented: "shell"
 
-    # The "ssh" module will receive all the connectivity
+    # The "shell" module is called either locally or over SSH with all the connectivity
     # from the nanostate (passwords or pubkeys, fqdn etc).
     # Here it only receives a series of actual commands on a target machine.
-    # Each "ssh" module opens an SSH connection and runs command list chain
+    # Each "shell" module opens an SSH connection (if remote) and runs command list chain
     # in the SSH channel sessions, combining the response into a JSON map.
-    # It doesn't make much sense to list up few "ssh" modules at this point,
+    # It doesn't make much sense to list up few "shell" modules at this point,
     # but better to call one and pile up commands in one cycle instead.
-    - ssh:
+    - shell:
         - get-id: "cat /etc/machine-id"
         - uptime: "uptime"
-        - hostname: "hostname"
+        - hostname: "hostname -A"
 
