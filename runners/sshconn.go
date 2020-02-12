@@ -11,7 +11,7 @@ import (
 	"path"
 )
 
-type NodeStage struct {
+type SshShell struct {
 	_fqdn     string
 	_port     int
 	_rsa_keys string
@@ -20,14 +20,14 @@ type NodeStage struct {
 	_user     string
 	_hkb      ssh.HostKeyCallback
 	_conn     *ssh.Client
-	_sessions map[string]*NodeSSHSession
+	_sessions map[string]*SSHSession
 	_runner   *SSHRunner
 }
 
 // Constructor. Needs to be given a location of SSH keys, including "known_hosts".
 // As an example: "/home/someuser/.ssh".
-func NewNodeStage(rsa string) *NodeStage {
-	ns := new(NodeStage)
+func NewSshShell(rsa string) *SshShell {
+	ns := new(SshShell)
 	ns._rsa_keys = rsa
 	ns._port = 22
 
@@ -42,7 +42,7 @@ func NewNodeStage(rsa string) *NodeStage {
 	ns._rsa_pub = "id_rsa.pub"
 
 	// Manage sessions
-	ns._sessions = make(map[string]*NodeSSHSession)
+	ns._sessions = make(map[string]*SSHSession)
 	ns._runner = NewSSHRunner()
 
 	ns.SetHostVerification(true)
@@ -51,13 +51,13 @@ func NewNodeStage(rsa string) *NodeStage {
 }
 
 // SetRemoteUsername sets remote username. Default is the current username.
-func (ns *NodeStage) SetRemoteUsername(username string) *NodeStage {
+func (ns *SshShell) SetRemoteUsername(username string) *SshShell {
 	ns._user = username
 	return ns
 }
 
 // SetHostVerification to true or false on SSH connection. Default is set to True.
-func (ns *NodeStage) SetHostVerification(hv bool) *NodeStage {
+func (ns *SshShell) SetHostVerification(hv bool) *SshShell {
 	var err error
 	if hv {
 		khpath := path.Join(ns._rsa_keys, "known_hosts")
@@ -72,20 +72,20 @@ func (ns *NodeStage) SetHostVerification(hv bool) *NodeStage {
 }
 
 // SetFQDN of the node that is going to be staged
-func (ns *NodeStage) SetFQDN(fqdn string) *NodeStage {
+func (ns *SshShell) SetFQDN(fqdn string) *SshShell {
 	ns._fqdn = fqdn
 	return ns
 }
 
 // SetPort the opened SSH port on the node that is going to be staged. Default is a standard 22.
-func (ns *NodeStage) SetPort(port int) *NodeStage {
+func (ns *SshShell) SetPort(port int) *SshShell {
 	ns._port = port
 	return ns
 }
 
 // SetRSAPrivKey sets a path to the private RSA key for
 // the SSH connection.
-func (ns *NodeStage) SetRSAPrivKey(name string) *NodeStage {
+func (ns *SshShell) SetRSAPrivKey(name string) *SshShell {
 	ns._rsa_priv = name
 	return ns
 }
@@ -93,13 +93,13 @@ func (ns *NodeStage) SetRSAPrivKey(name string) *NodeStage {
 // SetRSAPubKey sets a path to the public RSA key for
 // the SSH connection. This key should be deployed
 // to the target node.
-func (ns *NodeStage) SetRSAPubKey(name string) *NodeStage {
+func (ns *SshShell) SetRSAPubKey(name string) *SshShell {
 	ns._rsa_pub = name
 	return ns
 }
 
 // Connect opens an SSH connection to the remote machine
-func (ns *NodeStage) Connect() *NodeStage {
+func (ns *SshShell) Connect() *SshShell {
 	if ns._conn != nil {
 		return ns
 	}
@@ -123,18 +123,21 @@ func (ns *NodeStage) Connect() *NodeStage {
 	return ns
 }
 
-func (ns *NodeStage) NewSession() *NodeSSHSession {
+func (ns *SshShell) NewSession() *SSHSession {
 	if ns._conn == nil {
 		panic("Attempt to open a new session when no connection has been yet made")
 	}
-	session := NewNodeSSHSession(ns._conn)
+	session := NewSSHSession(ns._conn)
 	ns._sessions[session.Id] = session
 	return session
 }
 
 // Disconnect closes the SSH connection
-func (ns *NodeStage) Disconnect() *NodeStage {
+func (ns *SshShell) Disconnect() *SshShell {
 	if ns._conn != nil {
+		for _, session := range ns._sessions {
+			session.Session.Close()
+		}
 		ns._conn.Close()
 		ns._conn = nil
 	}
@@ -142,8 +145,7 @@ func (ns *NodeStage) Disconnect() *NodeStage {
 	return ns
 }
 
-/////////////////////////////// Internal
-func (ns *NodeStage) getFileContent(path string) []byte {
+func (ns *SshShell) getFileContent(path string) []byte {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Printf("ERROR: Unable to read file '%s'", path)
@@ -151,19 +153,8 @@ func (ns *NodeStage) getFileContent(path string) []byte {
 	return data
 }
 
-func (ns *NodeStage) verifyRSAKeyPath() {
+func (ns *SshShell) verifyRSAKeyPath() {
 	if st, err := os.Stat(ns._rsa_keys); os.IsNotExist(err) || !st.IsDir() {
 		panic("Path to RSA files does not exist or is not a directory")
-	}
-}
-
-//////////////////////////////// API
-
-// Run node staging
-func (ns *NodeStage) Run(scenario map[string]interface{}) {
-	playbook := Playbook()
-	playbook.Load(scenario)
-	for _, group := playbook.GetSections() {
-		ns._runner.Run(group)
 	}
 }
