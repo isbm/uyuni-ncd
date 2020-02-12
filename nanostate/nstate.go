@@ -48,11 +48,9 @@ package nanostate
 
 import (
 	"errors"
-	"fmt"
 )
 
 type StateModule struct {
-	Id           string
 	Module       string
 	Instructions []interface{}
 }
@@ -112,8 +110,6 @@ func (pb *Nanostate) loadGroup(name string, gobj interface{}) *StateGroup {
 		Group: make([]*StateModule, 0),
 	}
 
-	fmt.Println("Loading group", name, group)
-
 	for _, mobj := range gobj.([]interface{}) {
 		instr := pb.loadModuleInstructions(mobj)
 		if instr != nil {
@@ -131,7 +127,7 @@ func (pb *Nanostate) loadModuleInstructions(mobj interface{}) *StateModule {
 		module = &StateModule{
 			Instructions: make([]interface{}, 0),
 		}
-		module.Id = mname.(string)
+		module.Module = mname.(string)
 		module.Instructions = append(module.Instructions, minstr.([]interface{})...)
 	}
 	return module
