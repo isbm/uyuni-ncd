@@ -7,15 +7,15 @@ import (
 	"log"
 )
 
-type NodeSSHSession struct {
+type SSHSession struct {
 	Session *ssh.Session
 	Id      string
 	Outbuff bytes.Buffer
 	Errbuff bytes.Buffer
 }
 
-func NewNodeSSHSession(ctx *ssh.Client) *NodeSSHSession {
-	ss := new(NodeSSHSession)
+func NewSSHSession(ctx *ssh.Client) *SSHSession {
+	ss := new(SSHSession)
 
 	uuid, _ := uuid.NewUUID()
 	ss.Id = uuid.String()
@@ -33,7 +33,7 @@ func NewNodeSSHSession(ctx *ssh.Client) *NodeSSHSession {
 }
 
 // Run a command
-func (ss *NodeSSHSession) Run(cmd string) (string, error) {
+func (ss *SSHSession) Run(cmd string) (string, error) {
 	defer ss.Session.Close()
 	err := ss.Session.Run(cmd)
 	return ss.Outbuff.String(), err
