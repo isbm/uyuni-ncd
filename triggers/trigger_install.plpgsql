@@ -1,0 +1,5 @@
+-- rhnchannel
+DROP TRIGGER IF EXISTS rhnchannel_notify_event ON rhnchannel;
+CREATE TRIGGER rhnchannel_notify_event
+AFTER INSERT OR UPDATE OR DELETE ON rhnchannel
+    FOR EACH ROW EXECUTE PROCEDURE notify_event();
