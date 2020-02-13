@@ -26,3 +26,14 @@ state:
         - get-id: "cat /etc/machine-id"
         - uptime: "uptime"
         - hostname: "hostname -A"
+
+    # Call a typical Ansible module. Structure is simple as following:
+    #
+    # - ansible.<modulename>
+    #     <key>: <value>
+    #     <key>: <value>
+    #
+    # The "ansible.<modulename>" is a reserved namespace to call any Ansible module,
+    # following a key/value arguments
+    - ansible.helloworld:
+        name: "Cluster"
