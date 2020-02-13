@@ -48,11 +48,13 @@ package nanostate
 
 import (
 	"errors"
+	"reflect"
 )
 
 type StateModule struct {
 	Module       string
-	Instructions []interface{}
+	Instructions []interface{}          // For modules that might be called multiple times. Usually a shell command.
+	Args         map[string]interface{} // Modules, that are called only once.
 }
 
 type StateGroup struct {
@@ -128,7 +130,15 @@ func (pb *Nanostate) loadModuleInstructions(mobj interface{}) *StateModule {
 			Instructions: make([]interface{}, 0),
 		}
 		module.Module = mname.(string)
-		module.Instructions = append(module.Instructions, minstr.([]interface{})...)
+		tMinstr := reflect.ValueOf(minstr).Kind()
+		if tMinstr == reflect.Slice {
+			module.Instructions = append(module.Instructions, minstr.([]interface{})...)
+		} else if tMinstr == reflect.Map {
+			module.Args = make(map[string]interface{})
+			for argname, argval := range minstr.(map[interface{}]interface{}) {
+				module.Args[argname.(string)] = argval
+			}
+		}
 	}
 	return module
 }
