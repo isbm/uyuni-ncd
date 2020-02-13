@@ -1,11 +1,12 @@
 package runners
 
 import (
+	"fmt"
 	"github.com/isbm/uyuni-ncd/nanostate"
 )
 
 type IBaseRunner interface {
-	runModule(args interface{}) ([]RunnerHostResult, error)
+	callShell(args interface{}) ([]RunnerHostResult, error)
 }
 
 type BaseRunner struct {
@@ -46,20 +47,24 @@ func (br *BaseRunner) runGroup(group []*nanostate.StateModule) ([]RunnerResponse
 		cycle := &RunnerResponseModule{
 			Module: smod.Module,
 		}
-		response, err := br.ref.runModule(smod.Instructions)
-		if err != nil {
-			cycle.Errcode = ERR_FAILED
-			cycle.Errmsg = err.Error()
+		if cycle.Module == "shell" {
+			response, err := br.ref.callShell(smod.Instructions)
+			if err != nil {
+				cycle.Errcode = ERR_FAILED
+				cycle.Errmsg = err.Error()
+			} else {
+				cycle.Errcode = ERR_OK
+				cycle.Response = response
+			}
+			resp = append(resp, *cycle)
 		} else {
-			cycle.Errcode = ERR_OK
-			cycle.Response = response
+			fmt.Println(">>> ERROR: module", cycle.Module, "is not supported")
 		}
-		resp = append(resp, *cycle)
 	}
 	return resp, nil
 }
 
-func (br *BaseRunner) runModule(args interface{}) ([]RunnerHostResult, error) {
+func (br *BaseRunner) callShell(args interface{}) ([]RunnerHostResult, error) {
 	panic("Abstract method")
 }
 

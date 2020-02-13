@@ -62,7 +62,7 @@ func (shr *SSHRunner) SetSSHPort(port int) *SSHRunner {
 }
 
 // Run module with the parameters
-func (shr *SSHRunner) runModule(args interface{}) ([]RunnerHostResult, error) {
+func (shr *SSHRunner) callShell(args interface{}) ([]RunnerHostResult, error) {
 	result := make([]RunnerHostResult, 0)
 	for _, fqdn := range shr._hosts {
 		ret := shr.callHost(fqdn, args)

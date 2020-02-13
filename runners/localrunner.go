@@ -19,7 +19,7 @@ func NewLocalRunner() *LocalRunner {
 }
 
 // Call module commands
-func (lr *LocalRunner) runModule(args interface{}) ([]RunnerHostResult, error) {
+func (lr *LocalRunner) callShell(args interface{}) ([]RunnerHostResult, error) {
 	result := make([]RunnerHostResult, 0)
 	for _, argset := range args.([]interface{}) {
 		result = append(result, *lr.runCommand(argset))
