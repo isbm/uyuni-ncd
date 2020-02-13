@@ -26,4 +26,3 @@ state:
         - get-id: "cat /etc/machine-id"
         - uptime: "uptime"
         - hostname: "hostname -A"
-
