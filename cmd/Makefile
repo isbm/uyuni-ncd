@@ -1,4 +1,4 @@
-OUT := mgr-ncd
+OUT := ncd
 DISTRO := $(shell cat /etc/os-release | grep '^NAME=' | sed -e 's/.*=//')
 GCCGO :=
 GO :=
@@ -32,6 +32,7 @@ strip:
 
 clean:
 	$(GO) clean -x -i
+	rm $(OUT)
 
 flush-cache:
 	$(GO) clean -cache -modcache -i -r
