@@ -9,6 +9,7 @@ type RunnerStdResult struct {
 	Stderr  string
 	Errmsg  string
 	Errcode int
+	Json    map[string]interface{}
 }
 
 type RunnerHostResult struct {
@@ -37,6 +38,15 @@ type RunnerResponse struct {
 // JSON output of the response structure
 func (rr *RunnerResponse) JSON() string {
 	j, err := json.Marshal(rr)
+	if err != nil {
+		panic(err)
+	}
+	return string(j)
+}
+
+// JSON output of the response structure
+func (rr *RunnerResponse) PrettyJSON() string {
+	j, err := json.MarshalIndent(rr, "", "  ")
 	if err != nil {
 		panic(err)
 	}

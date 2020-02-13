@@ -71,6 +71,11 @@ func (shr *SSHRunner) callShell(args interface{}) ([]RunnerHostResult, error) {
 	return result, nil
 }
 
+func (shr *SSHRunner) callAnsibleModule(name string, kwargs map[string]interface{}) ([]RunnerHostResult, error) {
+	// Not implemented yet"
+	return nil, nil
+}
+
 // Call a single host with a series of serial, synchronous commands, ensuring their order.
 func (shr *SSHRunner) callHost(fqdn string, args interface{}) *RunnerHostResult {
 	response := make(map[string]RunnerStdResult)

@@ -3,10 +3,12 @@ package runners
 import (
 	"fmt"
 	"github.com/isbm/uyuni-ncd/nanostate"
+	"strings"
 )
 
 type IBaseRunner interface {
 	callShell(args interface{}) ([]RunnerHostResult, error)
+	callAnsibleModule(name string, kwargs map[string]interface{}) ([]RunnerHostResult, error)
 }
 
 type BaseRunner struct {
@@ -40,6 +42,16 @@ func (br *BaseRunner) Run(state *nanostate.Nanostate) bool {
 	return errors == 0
 }
 
+func (br *BaseRunner) setGroupResponse(cycle *RunnerResponseModule, response []RunnerHostResult, err error) {
+	if err != nil {
+		cycle.Errcode = ERR_FAILED
+		cycle.Errmsg = err.Error()
+	} else {
+		cycle.Errcode = ERR_OK
+		cycle.Response = response
+	}
+}
+
 // Run group of modules
 func (br *BaseRunner) runGroup(group []*nanostate.StateModule) ([]RunnerResponseModule, error) {
 	resp := make([]RunnerResponseModule, 0)
@@ -49,13 +61,11 @@ func (br *BaseRunner) runGroup(group []*nanostate.StateModule) ([]RunnerResponse
 		}
 		if cycle.Module == "shell" {
 			response, err := br.ref.callShell(smod.Instructions)
-			if err != nil {
-				cycle.Errcode = ERR_FAILED
-				cycle.Errmsg = err.Error()
-			} else {
-				cycle.Errcode = ERR_OK
-				cycle.Response = response
-			}
+			br.setGroupResponse(cycle, response, err)
+			resp = append(resp, *cycle)
+		} else if strings.HasPrefix(cycle.Module, "ansible.") {
+			response, err := br.ref.callAnsibleModule(cycle.Module, smod.Args)
+			br.setGroupResponse(cycle, response, err)
 			resp = append(resp, *cycle)
 		} else {
 			fmt.Println(">>> ERROR: module", cycle.Module, "is not supported")
@@ -64,7 +74,13 @@ func (br *BaseRunner) runGroup(group []*nanostate.StateModule) ([]RunnerResponse
 	return resp, nil
 }
 
+// Calls shell commands (both remotely or locally)
 func (br *BaseRunner) callShell(args interface{}) ([]RunnerHostResult, error) {
+	panic("Abstract method")
+}
+
+// Runs Ansible module (both remotely or locally)
+func (br *BaseRunner) callAnsibleModule(name string, kwargs map[string]interface{}) ([]RunnerHostResult, error) {
 	panic("Abstract method")
 }
 

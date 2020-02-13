@@ -2,6 +2,7 @@ package runners
 
 import (
 	"bytes"
+	"github.com/isbm/uyuni-ncd/runners/callers"
 	"os/exec"
 	"strings"
 )
@@ -25,6 +26,33 @@ func (lr *LocalRunner) callShell(args interface{}) ([]RunnerHostResult, error) {
 		result = append(result, *lr.runCommand(argset))
 	}
 	return result, nil
+}
+
+func (lr *LocalRunner) callAnsibleModule(name string, kwargs map[string]interface{}) ([]RunnerHostResult, error) {
+	caller := nstcallers.NewAnsibleLocalModuleCaller("/home/bo/work/golang/uyuni-ncd/modules/ansible/helloworld")
+	ret, err := caller.SetArgs(kwargs).Call()
+
+	var errmsg string
+	errcode := ERR_OK
+	if err != nil {
+		errmsg = err.Error()
+		errcode = ERR_FAILED
+	}
+
+	response := map[string]RunnerStdResult{
+		name: RunnerStdResult{
+			Json:    ret,
+			Errmsg:  errmsg,
+			Errcode: errcode,
+		},
+	}
+
+	rhr := &RunnerHostResult{
+		Host:     "localhost",
+		Response: response,
+	}
+
+	return []RunnerHostResult{*rhr}, nil
 }
 
 // Run a local command
