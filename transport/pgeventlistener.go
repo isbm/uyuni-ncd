@@ -131,7 +131,18 @@ func (pel *PgEventListener) errorLogger(event pq.ListenerEventType, err error) {
 	}
 }
 
+// Start in background
+func (pel *PgEventListener) StartProcess() {
+	go pel._start()
+}
+
+// Start in foreground
 func (pel *PgEventListener) Start() {
+	pel._start()
+}
+
+// Process notification monitor
+func (pel *PgEventListener) _start() {
 	if pel._channel == "" {
 		panic(errors.New("Channel is missing"))
 	}
@@ -139,7 +150,7 @@ func (pel *PgEventListener) Start() {
 	if err != nil {
 		panic(err)
 	}
-	listener := pq.NewListener(pel.getConnString(), 10*time.Second, time.Minute, pel.errorLogger)
+	listener := pq.NewListener(pel.getConnString(), 1*time.Second, time.Minute, pel.errorLogger)
 	if err := listener.Listen(pel._channel); err != nil {
 		panic(err)
 	}
