@@ -14,3 +14,7 @@ cmd/mgr-ncd
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+infra
+cmd/ncd
+cmd/ncd.conf
