@@ -9,6 +9,7 @@ require (
 	github.com/golang/protobuf v1.3.3 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/isbm/go-nanoconf v0.0.0-20200213162501-c88ba6d6d64c
+	github.com/kolo/xmlrpc v0.0.0-20190909154602-56d5ec7c422e
 	github.com/lib/pq v1.3.0
 	github.com/nats-io/nats-server/v2 v2.1.4 // indirect
 	github.com/nats-io/nats.go v1.9.1
