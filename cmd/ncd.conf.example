@@ -1,0 +1,22 @@
+# ncd supposed to run on localhost for localhost
+# Surely it is possible to run it elsewhere, but
+# essentially all "host" keys can be just omitted,
+# as they default to "localhost".
+#
+# "host" keys are added only for reference
+
+bus:
+  host: localhost
+  port: 4222
+
+db:
+  user: hans
+  password: katze
+  database: uyuni
+  host: localhost
+  ssl: false
+
+api:
+  user: hans
+  password: katze
+  url: http://localhost:8080/rpc/api
