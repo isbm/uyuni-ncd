@@ -70,6 +70,22 @@ func (uem *UyuniEventMapper) OnMQReceive(m *ncdtransport.MqMessage) {
 	}
 }
 
+// OnIntReceive converts a sendable to everyone mesage about what just happened at Uyuni Server
+func (uem *UyuniEventMapper) OnIntReceive(m *ncdtransport.InternalEventMessage) *ncdtransport.MqMessage {
+	msg := ncdtransport.NewMqMessage()
+	msg.Action = m.Action
+
+	payload, err := uem.intmap.OnTopic(m)
+	if err != nil {
+		fmt.Println("No actions defined on table", m.Topic)
+	} else {
+		msg.Topic = path.Join(uem.TopicRoot(), m.Topic)
+		msg.Payload = payload
+	}
+
+	return msg
+}
+
 // Set XML-RPC user
 func (uem *UyuniEventMapper) SetRPCUser(user string) *UyuniEventMapper {
 	uem._user = user
@@ -169,20 +185,4 @@ func (uem *UyuniEventMapper) GetRpc() *xmlrpc.Client {
 		}
 	}
 	return uem._rpc
-}
-
-// OnIntReceive converts a sendable to everyone mesage about what just happened at Uyuni Server
-func (uem *UyuniEventMapper) OnIntReceive(m *ncdtransport.InternalEventMessage) *ncdtransport.MqMessage {
-	msg := ncdtransport.NewMqMessage()
-	msg.Action = m.Action
-
-	payload, err := uem.intmap.OnTopic(m)
-	if err != nil {
-		fmt.Println("No actions defined on table", m.Topic)
-	} else {
-		msg.Topic = path.Join(uem.TopicRoot(), m.Topic)
-		msg.Payload = payload
-	}
-
-	return msg
 }
