@@ -28,6 +28,13 @@ func (mis *MsgIdStor) Present(msgid string) bool {
 	return ex
 }
 
+// Discard combines Present and Pop together
+func (mis *MsgIdStor) Discard(msgid string) bool {
+	ret := mis.Present(msgid)
+	mis.Pop(msgid)
+	return ret
+}
+
 func (mis *MsgIdStor) Pop(msgid string) {
 	if mis.Present(msgid) {
 		delete(mis.buff, msgid)
