@@ -7,5 +7,6 @@ import (
 type Mapper interface {
 	Label() string
 	TopicRoot() string
-	OnReceive(m ncdtransport.MqMessage)
+	OnMQReceive(m *ncdtransport.MqMessage)
+	OnIntReceive(m *ncdtransport.InternalEventMessage) *ncdtransport.MqMessage
 }
