@@ -1,10 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"github.com/isbm/go-nanoconf"
 	daemon "github.com/isbm/uyuni-ncd"
-	"github.com/isbm/uyuni-ncd/transport"
+	"github.com/isbm/uyuni-ncd/transport/eventmappers"
 	"github.com/urfave/cli/v2"
 	"os"
 )
@@ -16,6 +15,22 @@ func run(ctx *cli.Context) error {
 		cfg.Find("bus").String("host", "localhost"),
 		cfg.Find("bus").DefaultInt("port", "", 4222))
 
+	ncd.GetDBListener().
+		SetHost(cfg.Find("db").String("host", "")).
+		SetChannel("cluster").
+		SetDBName(cfg.Find("db").String("database", "")).
+		SetUser(cfg.Find("db").String("user", "")).
+		SetPassword(cfg.Find("db").String("password", "")).
+		SetSSLMode(false)
+
+	msgmap := eventmappers.NewUyuniEventMapper().
+		SetRPCUrl(cfg.Find("api").String("url", "")).
+		SetRPCUser(cfg.Find("api").String("user", "")).
+		SetRPCPassword(cfg.Find("api").String("password", ""))
+
+	ncd.AddMapper(msgmap).SetLeader(true)
+
+	ncd.Run()
 	return nil
 }
 
