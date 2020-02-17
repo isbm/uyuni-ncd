@@ -37,11 +37,11 @@ func NewMqMessage() *MqMessage {
 
 // Load self content from given bytes
 func (bm *MqMessage) FromBytes(data []byte) *MqMessage {
-	var content interface{}
+	var content map[string]interface{}
 	if err := json.Unmarshal(data, &content); err != nil {
 		log.Panicln("Error loading incoming JSON:", err.Error())
 	}
-	for section, obj := range content.(map[string]interface{}) {
+	for section, obj := range content {
 		switch section {
 		case "Topic":
 			bm.Topic = obj.(string)
@@ -72,17 +72,42 @@ func (bm *MqMessage) ToJSON() string {
 	return string(bm.ToBytes())
 }
 
-type DbEventMessage struct {
-	Data   map[string]interface{}
-	Table  string
-	Action string
+type InternalEventMessage struct {
+	Payload map[string]interface{}
+	Topic   string
+	Action  string
 }
 
-func NewDbEventMessage(data map[string]interface{}) *DbEventMessage {
-	dem := new(DbEventMessage)
-	dem.Table = data["table"].(string)
+func NewInternalEventMessage(data map[string]interface{}) *InternalEventMessage {
+	dem := new(InternalEventMessage)
+	dem.Topic = data["table"].(string)
 	dem.Action = strings.ToLower(data["action"].(string))
-	dem.Data = data["data"].(map[string]interface{})
+	dem.Payload = data["data"].(map[string]interface{})
 
 	return dem
+}
+
+func (iem *InternalEventMessage) FromData(data map[string]interface{}) *InternalEventMessage {
+	for section, obj := range data {
+		switch section {
+		case "Topic":
+			iem.Topic = obj.(string)
+		case "Payload":
+			iem.Payload = obj.(map[string]interface{})
+		case "Action":
+			iem.Action = obj.(string)
+		default:
+			log.Panicln("Unknown type section:", section)
+		}
+	}
+	return iem
+}
+
+// Load self content from given bytes
+func (iem *InternalEventMessage) FromBytes(data []byte) *InternalEventMessage {
+	var content map[string]interface{}
+	if err := json.Unmarshal(data, &content); err != nil {
+		log.Panicln("Error loading incoming JSON:", err.Error())
+	}
+	return iem.FromData(content)
 }
