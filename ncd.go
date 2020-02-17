@@ -26,7 +26,7 @@ type Ncd struct {
 	transport *ncdtransport.NcdPubSub
 	dbl       *ncdtransport.PgEventListener
 	reflector *ncdtransport.MsgIdBuff
-	_mappers  []eventmappers.Mapper
+	_mappers  []*eventmappers.Mapper
 }
 
 func NewNcd() *Ncd {
@@ -35,21 +35,22 @@ func NewNcd() *Ncd {
 	n.transport = ncdtransport.NewNcdPubSub()
 	n.dbl = ncdtransport.NewPgEventListener()
 	n.reflector = ncdtransport.NewMsgIdBuff()
-	n._mappers = make([]eventmappers.Mapper, 0)
+	n._mappers = make([]*eventmappers.Mapper, 0)
 
 	return n
 }
 
 // AddMapper adds a mapper to the ncd
 func (n *Ncd) AddMapper(mapper eventmappers.Mapper) *Ncd {
-	n._mappers = append(n._mappers, mapper)
+	n._mappers = append(n._mappers, &mapper)
 	return n
 }
 
 // GetMapper by a topic
-func (n *Ncd) GetMapper(topic string) (eventmappers.Mapper, error) {
+func (n *Ncd) GetMapper(topic string) (*eventmappers.Mapper, error) {
 	for _, mobj := range n._mappers {
-		if strings.HasPrefix(topic, mobj.TopicRoot()) {
+		mapper := *mobj
+		if strings.HasPrefix(topic, mapper.TopicRoot()) {
 			return mobj, nil
 		}
 	}
