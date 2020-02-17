@@ -87,15 +87,15 @@ func (n *Ncd) SetLeader(leader bool) *Ncd {
 
 // Handles CHANNEL_NODES inbox
 func (n *Ncd) nodesHandler(m *nats.Msg) {
-	fmt.Println("> from nodes:")
+	log.Println("NH: received", len(m.Data), "bytes")
 	msg := ncdtransport.NewMqMessage().FromBytes(m.Data)
-
-	mapper, err := n.GetMapper(msg.Topic)
-	if err != nil {
-		panic(err)
+	if n.reflector.Channel(CHANNEL_NODES).Discard(msg.Id) {
+		mapper, err := n.GetMapper(msg.Topic)
+		if err != nil {
+			panic(err)
+		}
+		(*(mapper)).OnMQReceive(msg)
 	}
-	fmt.Println(msg.ToJSON())
-	mapper.OnReceive(*msg)
 }
 
 // Handles CHANNELDIRECTOR inbox
@@ -106,19 +106,17 @@ func (n *Ncd) controllerHandler(m *nats.Msg) {
 // XXX: Temporary handler for Uyuni Server database only. This should be moved to a plugin system.
 // Handles DB external events
 func (n *Ncd) externalHandler(m interface{}) {
-
 	// Get Uyuni handler to deal with the database messages
 	mpref, err := n.GetMapper("/uyuni")
 	if err != nil {
 		panic(err)
 	}
+	log.Println("EH: get mapper")
 
-	switch mpref.Label() {
+	switch (*(mpref)).Label() {
 	case "UyuniEventMapper":
-		uyuni := mpref.(*eventmappers.UyuniEventMapper)
-		msg := uyuni.UyuniEventToMessage(ncdtransport.NewDbEventMessage(m.(map[string]interface{})))
-		n.reflector.Channel(CHANNEL_NODES).Push(msg.Id)
-		fmt.Println("> from db. Topic:", msg.Topic)
+		uyuni := (*(mpref)).(*eventmappers.UyuniEventMapper)
+		msg := uyuni.OnIntReceive(ncdtransport.NewInternalEventMessage(m.(map[string]interface{})))
 
 		// send only if the current node is a leader and topic is supported
 		if n.IsLeader() && msg.Topic != "" {
@@ -126,6 +124,8 @@ func (n *Ncd) externalHandler(m interface{}) {
 			if err != nil {
 				log.Panicln("Publishing error:", err)
 			}
+			n.reflector.Channel(CHANNEL_NODES).Push(msg.Id)
+			log.Println("EH: Published to", CHANNEL_NODES)
 		}
 	}
 }
