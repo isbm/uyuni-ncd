@@ -16,7 +16,6 @@ package eventmappers
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/isbm/uyuni-ncd/transport"
 	"github.com/kolo/xmlrpc"
 	"log"
@@ -34,6 +33,7 @@ type UyuniEventMapper struct {
 	_pwd     string
 	_session string
 	intmap   *UyuniIntMap
+	actmap   *UyuniActionsMap
 	index    map[string]interface{} // For now, at the beginning.
 	// Then should be its own type.
 	// Used to know what is at boot time in Uyuni
@@ -44,6 +44,7 @@ func NewUyuniEventMapper() *UyuniEventMapper {
 	uem._tls = true
 	uem.index = make(map[string]interface{})
 	uem.intmap = NewUyuniIntMap(uem)
+	uem.actmap = NewUyuniActionsMap(uem)
 	return uem
 }
 
@@ -64,33 +65,8 @@ func (uem *UyuniEventMapper) TopicRoot() string {
 // OnReceive tells what to do, once message came from the MQ bus
 func (uem *UyuniEventMapper) OnMQReceive(m *ncdtransport.MqMessage) {
 	fmt.Println("Uyuni mapper received message:", m.Topic)
-
-	switch m.Topic {
-	case "/uyuni/rhnchannel":
-		/*
-			Every entity should be always created and then updated.
-			However creation step should be omitted, if the entity wasn't found on boot index.
-		*/
-		switch m.Action {
-		case "update":
-			fmt.Println("Action", m.Action)
-			spew.Dump(m.Payload)
-			args := make([]interface{}, 0)
-
-			gpgkey := map[string]interface{}{
-				"url":         m.Payload.(map[string]interface{})["gpg_key_url"],
-				"id":          m.Payload.(map[string]interface{})["gpg_key_id"],
-				"fingerprint": m.Payload.(map[string]interface{})["gpg_key_fp"],
-			}
-			for _, arg := range []string{"label", "name", "summary", "arch_label", "parent_channel_label", "checksum_label", "gpgkey", "gpg_check"} {
-				if arg == "gpgkey" {
-					args = append(args, gpgkey)
-				} else {
-					args = append(args, m.Payload.(map[string]interface{})[arg])
-				}
-			}
-			uem.scall("channel.software.create", args...)
-		}
+	if err := uem.actmap.OnTopic(m); err != nil {
+		fmt.Println(err)
 	}
 }
 
