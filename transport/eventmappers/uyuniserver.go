@@ -16,6 +16,7 @@ package eventmappers
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/isbm/uyuni-ncd/transport"
 	"github.com/kolo/xmlrpc"
 	"log"
@@ -32,6 +33,7 @@ type UyuniEventMapper struct {
 	_user    string
 	_pwd     string
 	_session string
+	intmap   *UyuniIntMap
 	index    map[string]interface{} // For now, at the beginning.
 	// Then should be its own type.
 	// Used to know what is at boot time in Uyuni
@@ -41,6 +43,7 @@ func NewUyuniEventMapper() *UyuniEventMapper {
 	uem := new(UyuniEventMapper)
 	uem._tls = true
 	uem.index = make(map[string]interface{})
+	uem.intmap = NewUyuniIntMap(uem)
 	return uem
 }
 
@@ -59,8 +62,36 @@ func (uem *UyuniEventMapper) TopicRoot() string {
 }
 
 // OnReceive tells what to do, once message came from the MQ bus
-func (uem *UyuniEventMapper) OnReceive(m ncdtransport.MqMessage) {
+func (uem *UyuniEventMapper) OnMQReceive(m *ncdtransport.MqMessage) {
 	fmt.Println("Uyuni mapper received message:", m.Topic)
+
+	switch m.Topic {
+	case "/uyuni/rhnchannel":
+		/*
+			Every entity should be always created and then updated.
+			However creation step should be omitted, if the entity wasn't found on boot index.
+		*/
+		switch m.Action {
+		case "update":
+			fmt.Println("Action", m.Action)
+			spew.Dump(m.Payload)
+			args := make([]interface{}, 0)
+
+			gpgkey := map[string]interface{}{
+				"url":         m.Payload.(map[string]interface{})["gpg_key_url"],
+				"id":          m.Payload.(map[string]interface{})["gpg_key_id"],
+				"fingerprint": m.Payload.(map[string]interface{})["gpg_key_fp"],
+			}
+			for _, arg := range []string{"label", "name", "summary", "arch_label", "parent_channel_label", "checksum_label", "gpgkey", "gpg_check"} {
+				if arg == "gpgkey" {
+					args = append(args, gpgkey)
+				} else {
+					args = append(args, m.Payload.(map[string]interface{})[arg])
+				}
+			}
+			uem.scall("channel.software.create", args...)
+		}
+	}
 }
 
 // Set XML-RPC user
@@ -108,6 +139,7 @@ func (uem *UyuniEventMapper) auth() {
 			log.Fatal("Login error:", err.Error())
 		}
 		uem._session = res.(string)
+		log.Println("AUTH: Session:", uem._session)
 	} else {
 		log.Fatalf("User needs to be defined for XML-RPC login")
 	}
@@ -116,22 +148,27 @@ func (uem *UyuniEventMapper) auth() {
 // Internall sessioned call for the XML-RPC
 func (uem *UyuniEventMapper) scall(function string, args ...interface{}) interface{} {
 	var res interface{}
-	recall := false
+
 	if uem._session == "" {
+		log.Println("SCALL has no session:", uem._session)
 		uem.auth()
 	}
-	res, err := uem.call(function, args)
+
+	_args := []interface{}{uem._session}
+	_args = append(_args, args...)
+
+	res, err := uem.call(function, _args...)
+	recall := err != nil
 	if err != nil {
-		uem.auth() // It might be token expiration, so try again. Unless Uyuni changes to a better error handling...
-		recall = true
+		log.Println(err.Error())
 	}
 	if recall {
-		res, err = uem.call(function, "", args)
+		res, err = uem.call(function, _args...)
 		if err != nil {
-			log.Println("Function:", function, "Args:", args)
-			log.Fatal("Second pass failure:", err) // OK, now fail
+			log.Fatalln("XML-RPC crash:", err.Error())
 		}
 	}
+
 	return res
 }
 
@@ -158,24 +195,18 @@ func (uem *UyuniEventMapper) GetRpc() *xmlrpc.Client {
 	return uem._rpc
 }
 
-// UyuniEventToMessage tells to everyone through the message bus what just happened at Uyuni Server
-func (uem *UyuniEventMapper) UyuniEventToMessage(m *ncdtransport.DbEventMessage) *ncdtransport.MqMessage {
+// OnIntReceive converts a sendable to everyone mesage about what just happened at Uyuni Server
+func (uem *UyuniEventMapper) OnIntReceive(m *ncdtransport.InternalEventMessage) *ncdtransport.MqMessage {
 	msg := ncdtransport.NewMqMessage()
-	switch m.Table {
-	case "rhnchannel":
-		switch m.Action {
-		case "insert":
-			msg.Action = m.Action
-			msg.Topic = path.Join(uem.TopicRoot(), "channel")
-			msg.Payload = uem.scall("channel.software.getDetails")
+	msg.Action = m.Action
 
-		case "update":
-		case "delete":
-		default:
-			fmt.Println("No destination defined on action", m.Action)
-		}
-	default:
-		fmt.Println("No actions defined on table", m.Table)
+	payload, err := uem.intmap.OnTopic(m)
+	if err != nil {
+		fmt.Println("No actions defined on table", m.Topic)
+	} else {
+		msg.Topic = path.Join(uem.TopicRoot(), m.Topic)
+		msg.Payload = payload
 	}
+
 	return msg
 }
