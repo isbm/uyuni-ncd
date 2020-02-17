@@ -28,7 +28,7 @@ func run(ctx *cli.Context) error {
 		SetRPCUser(cfg.Find("api").String("user", "")).
 		SetRPCPassword(cfg.Find("api").String("password", ""))
 
-	ncd.AddMapper(msgmap).SetLeader(true)
+	ncd.AddMapper(msgmap).SetLeader(ctx.Bool("leader"))
 
 	ncd.Run()
 	return nil
@@ -50,6 +50,11 @@ func main() {
 				Usage:    "Path to configuration file",
 				Required: false,
 				Value:    confpath.SetDefaultConfig(confpath.FindFirst()).FindDefault(),
+			},
+			&cli.BoolFlag{
+				Name:    "leader",
+				Aliases: []string{"m"},
+				Usage:   "Leader mode",
 			},
 		},
 	}
@@ -77,21 +82,5 @@ func main() {
 		l := runners.NewLocalRunner()
 		l.Run(n)
 		fmt.Println(l.Response().PrettyJSON())
-	*/
-
-	//ns := ncdjobs.NewNodeStage("/home/bo/.ssh")
-	//ns.SetRSAPrivKey("/home/bo/.ssh/id_rsa")
-	/*
-		n := ncd.NewNcd()
-		n.AddNatsServerURL("localhost", 4222)
-		n.Start()
-
-		ns := ncdjobs.NodeStage()
-		t := ncdtransport.NewCdtTransport("test").AddCallback(ns.Stage)
-
-		n.Subscribe(t)
-
-		n.GetSubscriber().Subscribe("test", getshit)
-		n.GetPublisher().Publish("test", []byte("some shit"))
 	*/
 }
