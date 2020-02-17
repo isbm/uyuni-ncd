@@ -89,7 +89,7 @@ func (n *Ncd) SetLeader(leader bool) *Ncd {
 func (n *Ncd) nodesHandler(m *nats.Msg) {
 	log.Println("NH: received", len(m.Data), "bytes")
 	msg := ncdtransport.NewMqMessage().FromBytes(m.Data)
-	if n.reflector.Channel(CHANNEL_NODES).Discard(msg.Id) {
+	if !n.reflector.Channel(CHANNEL_NODES).Discard(msg.Id) {
 		mapper, err := n.GetMapper(msg.Topic)
 		if err != nil {
 			panic(err)
