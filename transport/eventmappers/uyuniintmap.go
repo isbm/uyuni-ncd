@@ -33,7 +33,7 @@ func (uim *UyuniIntMap) OnTopic(m *ncdtransport.InternalEventMessage) (interface
 		return nil, fmt.Errorf("No topic '%s' has been found", m.Topic)
 	}
 
-	return call(m.Topic, m.Payload), nil
+	return call(m.Action, m.Payload), nil
 }
 
 ///////////////// Mappers
