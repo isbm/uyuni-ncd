@@ -12,7 +12,7 @@ func run(ctx *cli.Context) error {
 	cfg := nanoconf.NewConfig(ctx.String("config"))
 	ncd := daemon.NewNcd()
 	ncd.GetTransport().AddNatsServerURL(
-		cfg.Find("bus").String("host", "localhost"),
+		cfg.Find("bus").String("host", ""),
 		cfg.Find("bus").DefaultInt("port", "", 4222))
 
 	ncd.GetDBListener().
