@@ -52,7 +52,7 @@ func (ncd *NcdPubSub) getClusterURLs() string {
 // Connect to the cluster
 func (ncd *NcdPubSub) connect() {
 	var err error
-	log.Print("Connecting...")
+	log.Printf("Connecting to %s...", ncd.getClusterURLs())
 	if !ncd.IsConnected() {
 		ncd.ncp, err = nats.Connect(ncd.getClusterURLs())
 		log.Print("Connected publisher")
