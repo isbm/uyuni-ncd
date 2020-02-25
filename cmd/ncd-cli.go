@@ -61,26 +61,27 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		panic(err)
 	}
-	/*
-		c := nstcompiler.NewNstCompiler()
-		err := c.LoadFile("./test.nst")
-		if err != nil {
-			panic(err)
-		}
-
-		n := nanostate.NewNanostate()
-		err = n.Load(c.Tree())
-		if err != nil {
-			panic(err)
-		}
-
-		s := runners.NewSSHRunner().SetSSHHostVerification(false).AddHost("d76.suse.de")
-		s.Run(n)
-		fmt.Println(s.Response().PrettyJSON())
-		fmt.Println("--------------")
-
-		l := runners.NewLocalRunner()
-		l.Run(n)
-		fmt.Println(l.Response().PrettyJSON())
-	*/
 }
+
+/*
+	c := nstcompiler.NewNstCompiler()
+	err := c.LoadFile("./test.nst")
+	if err != nil {
+		panic(err)
+	}
+
+	n := nanostate.NewNanostate()
+	err = n.Load(c.Tree())
+	if err != nil {
+		panic(err)
+	}
+
+	s := runners.NewSSHRunner().SetSSHHostVerification(false).AddHost("d76.suse.de")
+	s.Run(n)
+	fmt.Println(s.Response().PrettyJSON())
+	fmt.Println("--------------")
+
+	l := runners.NewLocalRunner()
+	l.Run(n)
+	fmt.Println(l.Response().PrettyJSON())
+*/
