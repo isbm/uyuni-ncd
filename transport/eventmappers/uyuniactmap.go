@@ -2,7 +2,6 @@ package eventmappers
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/isbm/uyuni-ncd/transport"
 )
 
@@ -41,7 +40,6 @@ func (uam *UyuniActionsMap) onRhnChannel(m *ncdtransport.MqMessage) error {
 		switch m.Action {
 		case "update":
 			fmt.Println("Action", m.Action)
-			spew.Dump(m.Payload)
 			args := make([]interface{}, 0)
 
 			for _, arg := range []string{"label", "name", "summary", "arch_label",
@@ -56,7 +54,7 @@ func (uam *UyuniActionsMap) onRhnChannel(m *ncdtransport.MqMessage) error {
 					args = append(args, m.Payload.(map[string]interface{})[arg])
 				}
 			}
-			uam.mapper.scall("channel.software.create", args...)
+			fmt.Println("Return on channel.software.create:", uam.mapper.scall("channel.software.create", args...))
 		}
 	}
 	return nil
